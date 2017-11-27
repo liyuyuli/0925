@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>焦点轮播图</title>
+	<style type="text/css">
+		/*去除内边距,没有链接下划线*/
+		* {
+			margin: 0;
+			padding: 0;
+			text-decoration: none;
+		}
+		/*让<body有20px的内边距*/
+		body {
+			padding: 20px;
+		}
+		/*最外围的div*/
+		#container {
+			width: 600px;
+			height: 400px;
+			overflow: hidden;
+			position: relative;/*相对定位*/
+			margin: 0 auto;
+		}
+		/*包含所有图片的<div>*/
+
+		#list {
+			width: 4200px; /*7张图片的宽: 7*600 */
+			height: 400px;
+			position: absolute; /*绝对定位*/
+			z-index: 1;
+
+		}
+		/*所有的图片<img>*/
+		#list img {
+			float: left;/*浮在左侧*/
+		}
+		/*包含所有圆点按钮的<div>*/
+		#pointsDiv {
+			position: absolute;
+			height: 10px;
+			width: 100px;
+			/*当用定位或浮动后出现页面重叠时,z-index的值越大,浮动在上面,值小的在下面
+			z表示一条虚拟的垂直于页面的轴*/
+			z-index: 2;
+			bottom: 20px;
+			left: 250px;
+		}
+		/*所有的圆点<span>*/
+
+		#pointsDiv span {
+			cursor: pointer;
+			float: left;
+			border: 1px solid #fff;
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			background: #333;
+			margin-right: 5px;
+		}
+		/*第一个<span>*/
+
+		#pointsDiv .on {
+			background: orangered;
+		}
+		/*切换图标<a>*/
+
+		.arrow {
+			cursor: pointer;
+			display: none;
+			line-height: 39px;
+			text-align: center;
+			font-size: 36px;
+			font-weight: bold;
+			width: 40px;
+			height: 40px;
+			position: absolute;
+			z-index: 2;
+			top: 180px;
+			background-color: RGBA(0, 0, 0, 0.3);
+			color: #fff;
+		}
+		/*鼠标移到切换图标上时*/
+		.arrow:hover {
+			background-color: RGBA(0, 0, 0, 0.7);
+		}
+		/*鼠标移到整个div区域时*/
+		#container:hover .arrow {
+			display: block;/*显示*/
+		}
+		/*上一个切换图标的左外边距*/
+		#prev {
+			left: 20px;
+		}
+		/*下一个切换图标的右外边距*/
+		#next {
+			right: 20px;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="container">
+		<div id="list" style="left: -600px;">
+			<img src="img/5.jpg" alt="5" />
+			<img src="img/1.jpg" alt="1" />
+			<img src="img/2.jpg" alt="2" />
+			<img src="img/3.jpg" alt="3" />
+			<img src="img/4.jpg" alt="4" />
+			<img src="img/5.jpg" alt="5" />
+			<img src="img/1.jpg" alt="1" />
+		</div>
+		<div id="pointsDiv">
+			<span index="1" class="on"></span>
+			<span index="2"></span>
+			<span index="3"></span>
+			<span index="4"></span>
+			<span index="5"></span>
+		</div>
+		<a href="javascript:;" id="prev" class="arrow">&lt;</a>
+		<a href="javascript:;" id="next" class="arrow">&gt;</a>
+	</div>
+	<script src="./js/jquery.1.10.2.js"></script>
+	<script type="text/javascript">
+       /* 功能说明:
+            1. 点击向右(左)的图标, 平滑切换到下(上)一页
+        2. 无限循环切换
+        3. 每隔3s自动滑动到下一页
+        4. 鼠标进入停止自动翻页, 移出开启自动翻页
+        5. 切换页面时, 下面的圆点也同步更新
+        6. 点击圆点图标切换到对应的页*/
+   $(function () {
+	   //设置存储图片的容器
+	   var $list = $('#list');
+	   //可视窗口的容器
+	   var $container = $('#container');
+	   //左右两个控制按钮
+	   var $prev = $('#prev');
+	   var $next = $('#next');
+	   //下方小圆点
+	   var $points = $('#points');
+	   //每张图片的宽
+	   var PAGE_WIDTH = 600;
+	   //图片张数
+	   var img = $points.length;
+	   //初始化索引index
+	   var index = 0;
+	   //定义动画执行中标识,解决快速点击出现空白页面问题
+	   var isMoving = false;
+	   //基础定义完成
+
+	   //设置左右控制按钮,左右页面滑动
+	   $next.click(function(){
+	       //设置true为向右
+	       nextPage(true);
+	   })
+	   $prev.click(function(){
+	       //设置false为向左
+	       nextPage(false);
+	   })
+       //3. 每隔3s自动滑动到下一页
+	   //定时器嘛
+	   var auto = setInterval(function () {
+		   nextPage(true);
+       },3000);
+      // 4. 鼠标进入停止自动翻页, 移出开启自动翻页
+	   //用hover伪元素
+	   $container.hover(function () {
+		   clearInterval(auto);
+       }),function () {
+		   auto = setInterval(function () {
+			   nextPage(true);
+           },3000)
+       }
+       $points.click(function(){
+           //定义目标index
+		   var targetIndex = $(this).index();
+		   nextPage(targetIndex);
+	   })
+       //定义图片滑动的函数isMoving之前设置的正在移动到意思
+	   function nextPage(next) {
+	       //判断图片正在移动,则直接跳出
+		   if(isMoving){
+		       return;
+		   }
+		   //通过移动一张图片的偏移量,来控制图片左右移动
+		   if(typeof next === 'boolean'){
+		       var offset = next? -PAGE_WIDTH:PAGE_WIDTH;
+
+		   }else{
+		       //
+		       var offset = -(next-index)*PAGE_WIDTH;
+		   }
+		   //开始执行动画函数
+		   isMoving = true;
+		   //定义动画总时长
+		   var time = 400;
+		   //定义每帧时长
+		   var itemTime = 20;
+           //每帧的偏移量=总偏移量/(总时长/每帧时长=帧数)
+		   var itemOffset = offset/(time/itemTime);
+		   //获取当前图片容器的left值
+		   var currLeft = $list.position().left;
+		   //目的地的left值
+		   var targetLeft = currLeft + offset;
+		   var intervalId = setInterval(function () {
+			   currLeft += itemOffset;
+			   //判断一张图片滑动完成
+			   if(currLeft === targetLeft){
+			       clearInterval(intervalId);
+			       isMoving = false;
+			       //判断是否到达边界
+				   if(currLeft === 0){
+				       currLeft = img*-PAGE_WIDTH;
+				   }else if(currLeft === (img+1)*-PAGE_WIDTH){
+				       currLeft = -PAGE_WIDTH;
+				   }
+			   }
+			   $list.css('left',currLeft);
+			   //设置为动态每帧时间
+           },itemTime);
+		    autoPoints(next)
+       }
+       //5. 切换页面时, 下面的圆点也同步更新
+       function autoPoints(next) {
+		   //定义小圆点目标index, 根据next控制方向
+		   if(typeof next === 'boolean'){
+		       var targetIndex = next ? index+1 : index-1;
+		   }else{
+		       var targetIndex = next;
+		   }
+		   //判断小圆点的下边界
+		   if(targetIndex < 0){
+		       targetIndex = img-1;
+		   }else if(targetIndex === img){
+		       targetIndex = 0;
+		   }
+		   $points.eq(targetIndex).addClass('on');
+		   $points.eq(index).removeClass('on');
+		   //跟新下标->保持同步
+		   index =targetIndex;
+       }
+   })
+	</script>
+</body>
+
+</html>
